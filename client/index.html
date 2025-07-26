@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crypto Crash Game</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: Arial;
+      text-align: center;
+      margin-top: 60px;
+    }
+    #multiplier {
+      font-size: 3em;
+      margin: 20px 0;
+    }
+    #crash {
+      color: red;
+      font-size: 2em;
+    }
+    button {
+      background-color: #4caf50;
+      border: none;
+      color: white;
+      padding: 12px 25px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💥 Crypto Crash Game</h1>
+  <div id="multiplier">Waiting for round...</div>
+  <div id="crash"></div>
+  <button onclick="cashout()">💸 Cash Out</button>
+
+  <script>
+    const socket = io();
+
+    let latestMultiplier = 1;
+
+    socket.on('roundStart', (data) => {
+      document.getElementById('crash').innerText = '';
+      document.getElementById('multiplier').innerText = '1.00x';
+    });
+
+    socket.on('multiplier', (multiplier) => {
+      latestMultiplier = multiplier;
+      document.getElementById('multiplier').innerText = multiplier + 'x';
+    });
+
+    socket.on('crash', ({ crashPoint }) => {
+      document.getElementById('crash').innerText = `💥 Crashed at ${crashPoint}x`;
+    });
+
+    socket.on('cashoutResult', (data) => {
+      if (data.error) {
+        alert('❌ ' + data.error);
+      } else {
+        alert(`✅ Cashed out at ${data.multiplier}x\nCrypto: ${data.payoutCrypto.toFixed(6)}\nUSD: $${data.payoutUSD}`);
+      }
+    });
+
+    function cashout() {
+      const playerId = prompt("Enter your Player ID:");
+      if (playerId) {
+        socket.emit('cashout', { playerId });
+      }
+    }
+  </script>
+
+</body>
+</html>
