@@ -7,26 +7,29 @@ const connectDB = require('./config/db');
 const gameRoutes = require('./routes/gameRoutes');
 const { generateSeed, getCrashPoint } = require('./services/crashService');
 const Round = require('./models/Round');
+const path = require('path');
+const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server, { cors: { origin: "*" } });
 
+// Connect to MongoDB
 connectDB();
+
 app.use(cors());
 app.use(express.json());
 app.use('/api', gameRoutes);
 
-// Serve client HTML
-const path = require('path');
+// Serve static frontend files
 app.use('/', express.static(path.join(__dirname, 'client')));
 
-// Store current round info
+// Round state
 let currentRound = null;
 let multiplier = 1.0;
 let multiplierInterval = null;
 
-//  Multiplier Logic with crash check
+// Start multiplier increase loop
 const startMultiplier = async (crashPoint, startTime) => {
   multiplier = 1.0;
 
@@ -41,19 +44,19 @@ const startMultiplier = async (crashPoint, startTime) => {
       clearInterval(multiplierInterval);
       io.emit('crash', { crashPoint });
 
-      if (currentRound && currentRound.active) {
+      if (currentRound?.active) {
         currentRound.active = false;
         try {
-          await currentRound.save(); //  Await inside async function
+          await currentRound.save();
         } catch (err) {
-          console.error("Failed to save round:", err);
+          console.error("❌ Failed to save round:", err);
         }
       }
     }
   }, 100);
 };
 
-//  Start a new round
+// Start a new round
 const startNewRound = async () => {
   const seed = generateSeed();
   const roundCount = await Round.countDocuments();
@@ -77,21 +80,22 @@ const startNewRound = async () => {
   await startMultiplier(crashPoint, round.startTime);
 };
 
-//  Replace setInterval with recursive async loop
+// Recursive round loop
 const startLoop = async () => {
   await startNewRound();
   setTimeout(startLoop, 10000); // wait 10s between rounds
 };
-startLoop(); // Start the game loop
 
-//  Handle WebSocket cashout
+startLoop();
+
+// Socket events
 io.on('connection', (socket) => {
-  console.log(' Client connected');
+  console.log('✅ Client connected');
 
   socket.on('cashout', async ({ playerId }) => {
     try {
-      const axios = require('axios');
-      const res = await axios.post(`http://localhost:${process.env.PORT}/api/cashout`, { playerId });
+      const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT}`;
+      const res = await axios.post(`${baseUrl}/api/cashout`, { playerId });
       socket.emit('cashoutResult', res.data);
     } catch (err) {
       socket.emit('cashoutResult', { error: 'Cashout failed' });
@@ -99,11 +103,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(' Client disconnected');
+    console.log('❌ Client disconnected');
   });
 });
 
-//  Start server
-server.listen(process.env.PORT, () =>
-  console.log(` Server running on http://localhost:${process.env.PORT}`)
-);
+// Listen on 0.0.0.0 for cloud deployment
+server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${process.env.PORT || 3000}`);
+});
