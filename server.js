@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const socketIo = require("socket.io");
+const path = require("path");
 require("dotenv").config();
 
 const connectDB = async () => {
@@ -19,19 +20,24 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Allow all for now
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from 'client' folder
+app.use(express.static(path.join(__dirname, "client")));
+
+// Send index.html for root route
 app.get("/", (req, res) => {
-  res.send("🚀 CryptoCrash backend is live");
+  res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
-// Socket logic
+// Socket.io logic
 io.on("connection", (socket) => {
   console.log("🟢 A user connected");
 
@@ -47,8 +53,10 @@ io.on("connection", (socket) => {
   });
 });
 
+// Connect to DB and start server
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+connectDB().then(() => {
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 });

@@ -4,17 +4,57 @@
   <meta charset="UTF-8" />
   <title>Crypto Crash Game</title>
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding-top: 80px;
+    }
+
+    h1 {
+      font-size: 3rem;
+    }
+
+    #multiplier {
+      font-size: 5rem;
+      margin-top: 30px;
+      color: lime;
+    }
+
+    button {
+      margin-top: 30px;
+      padding: 12px 28px;
+      font-size: 1.2rem;
+      border: none;
+      background-color: #00aaff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0088cc;
+    }
+  </style>
 </head>
 <body>
-  <h1>Crypto Crash Game</h1>
-  <p>Multiplier: <span id="multiplier">1.00</span></p>
+  <h1>💥 Crypto Crash Game</h1>
+  <div id="multiplier">1.00</div>
+  <button onclick="cashOut()">💸 Cash Out</button>
 
   <script>
-    const socket = io('https://cryptocrash-production.up.railway.app'); // ✅ Important for prod
+    const socket = io(); // connects to same domain/server
 
     socket.on("multiplier", (value) => {
-      document.getElementById("multiplier").innerText = value;
+      document.getElementById("multiplier").innerText = value + "x";
     });
+
+    function cashOut() {
+      alert("💸 Cash Out logic can go here!");
+      // Optional: integrate with backend to handle actual cashout logic
+    }
   </script>
 </body>
 </html>
